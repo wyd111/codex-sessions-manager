@@ -6,7 +6,7 @@ import {
 } from '../src/utils/sessionSources.js';
 
 describe('sourceOptionsFromSessions', () => {
-  it('returns All sources plus unique source options sorted by name', () => {
+  it('returns the Chinese all-sources option plus unique source options sorted by name', () => {
     const sessions = [
       { sourceId: 'api', sourceName: 'Default API Key' },
       { sourceId: 'chatgpt', sourceName: 'ChatGPT Login' },
@@ -14,7 +14,7 @@ describe('sourceOptionsFromSessions', () => {
     ];
 
     expect(sourceOptionsFromSessions(sessions)).toEqual([
-      { title: 'All sources', value: ALL_SOURCES_VALUE },
+      { title: '全部来源', value: ALL_SOURCES_VALUE },
       { title: 'ChatGPT Login', value: 'chatgpt' },
       { title: 'Default API Key', value: 'api' },
     ]);

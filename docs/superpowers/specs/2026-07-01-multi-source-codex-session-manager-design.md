@@ -6,7 +6,7 @@ Adapt `coramba/codex-sessions-manager` from a single-session-root viewer into a 
 
 ## Context
 
-On this machine, the only complete Codex state home with sessions is `C:\Users\15693\.codex`. It currently uses API key auth and contains both `sessions` and `archived_sessions`. Session JSONL metadata does not include reliable `auth_mode`, account id, or email fields, so old files in one home cannot be safely split into API key vs ChatGPT-account groups after the fact.
+Session JSONL metadata does not include reliable `auth_mode`, account id, or email fields, so old files in one home cannot be safely split into API key vs ChatGPT-account groups after the fact.
 
 Codex login changes can affect which threads the Codex app or picker shows, but this manager should be a direct local file viewer. It should not log in, copy tokens, inspect secrets, or mutate `auth.json`.
 
@@ -25,8 +25,8 @@ Preferred new configuration:
 
 ```env
 CODEX_SESSION_SOURCES=[
-  {"id":"default-apikey","name":"Default API Key","codexHome":"C:/Users/15693/.codex"},
-  {"id":"chatgpt","name":"ChatGPT Login","codexHome":"C:/Users/15693/.codex-chatgpt"}
+  {"id":"default-apikey","name":"Default API Key","codexHome":"C:/Users/<WindowsUser>/.codex"},
+  {"id":"chatgpt","name":"ChatGPT Login","codexHome":"C:/Users/<WindowsUser>/.codex-chatgpt"}
 ]
 ```
 

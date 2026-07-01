@@ -53,25 +53,25 @@ const sourceFilterModel = computed({
 
 <template>
   <div class="header-sticky d-flex align-center justify-space-between flex-wrap px-4 px-md-6">
-    <div>
-      <h1 class="text-h4 font-weight-bold mb-1">Codex Sessions Manager</h1>
+    <div class="title-block">
+      <h1 class="text-h5 font-weight-bold mb-1">Codex 会话管理</h1>
       <p class="text-body-2 text-medium-emphasis">
-        Showcase of recorded coding agent sessions parsed from JSONL archives.
+        管理当前电脑上的 Codex 本地会话；支持不同 CODEX_HOME 来源切换。
       </p>
     </div>
     <div class="d-flex align-center gap-3 flex-wrap">
       <v-select
         v-model="sourceFilterModel"
         :items="sourceOptions"
-        label="Source"
-        density="comfortable"
+        label="来源"
+        density="compact"
         hide-details
         class="source-select mr-3"
       />
       <v-btn-toggle
         v-model="groupModel"
         divided
-        density="comfortable"
+        density="compact"
         class="group-toggle mr-3"
       >
         <v-btn
@@ -84,24 +84,24 @@ const sourceFilterModel = computed({
         </v-btn>
       </v-btn-toggle>
       <v-chip color="primary" variant="flat" class="text-body-2">
-        {{ sessionsCount }} sessions
+        {{ sessionsCount }} 个会话
       </v-chip>
       <v-checkbox
         v-model="showEmptyModel"
         density="compact"
         hide-details
-        label="Show empty sessions"
+        label="显示空会话"
         class="ml-2"
       />
       <v-btn
         color="secondary"
         variant="flat"
-        size="large"
+        size="default"
         class="refresh-btn"
         @click="emit('refresh')"
       >
         <v-icon size="18" class="mr-1" icon="mdi-refresh"></v-icon>
-        Refresh
+        刷新
       </v-btn>
     </div>
   </div>
@@ -112,20 +112,24 @@ const sourceFilterModel = computed({
   position: sticky;
   top: 0;
   z-index: 10;
-  padding: 16px 0 22px;
+  padding: 12px 0 14px;
   margin: 0;
-  background: rgba(232, 235, 240, 0.92);
-  backdrop-filter: blur(6px);
+  background: rgba(247, 248, 250, 0.94);
+  backdrop-filter: blur(14px);
   border-bottom: 1px solid rgba(0, 0, 0, 0.04);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
 }
 
-.group-toggle {
+.title-block {
   min-width: 260px;
 }
 
+.group-toggle {
+  min-width: 250px;
+}
+
 .source-select {
-  min-width: 220px;
+  min-width: 190px;
 }
 
 .refresh-btn {

@@ -29,7 +29,7 @@ export const formatDate = (value) => {
   if (!value) return 'N/A';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat('zh-CN', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -40,16 +40,34 @@ export const formatDate = (value) => {
 };
 
 export const formatDuration = (ms) => {
-  if (!ms || ms < 1000) return '0s';
+  if (!ms || ms < 1000) return '0秒';
   const totalSeconds = Math.floor(ms / 1000);
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
   const parts = [];
-  if (hours) parts.push(`${hours}h`);
-  if (minutes) parts.push(`${minutes}m`);
-  if (!hours && !minutes && seconds) parts.push(`${seconds}s`);
-  return parts.join(' ') || '0s';
+  if (hours) parts.push(`${hours}小时`);
+  if (minutes) parts.push(`${minutes}分钟`);
+  if (!hours && !minutes && seconds) parts.push(`${seconds}秒`);
+  return parts.join(' ') || '0秒';
+};
+
+const projectNameFromCwd = (cwd) => {
+  const cwdParts = String(cwd || '').split(/[\\/]/).filter(Boolean);
+  return cwdParts[cwdParts.length - 1] || '未知项目';
+};
+
+const safeFileName = (value) => String(value || '').split(/[\\/]/).pop() || 'session.jsonl';
+
+const fallbackDisplayName = (file, sessionId) => {
+  const fileName = safeFileName(file.path || file.rel || file.fullPath);
+  return (
+    file.displayName ||
+    file.threadName ||
+    (fileName ? fileName.replace(/\.jsonl$/i, '') : '') ||
+    sessionId ||
+    NO_REQUEST_TEXT
+  );
 };
 
 // JSONL files here are pretty-printed blocks, so we collect full JSON objects
@@ -168,36 +186,57 @@ const computeActiveDuration = (entries) => {
 };
 
 const parseSingleSession = (file) => {
-  const { path, raw } = file;
-  const entries = parseJsonBlocks(raw);
+  const { raw } = file;
+  const hasTranscript = Boolean(raw);
+  const sessionPath = file.path || file.relativePath || file.rel || '';
+  const entries = hasTranscript ? parseJsonBlocks(raw) : [];
   const messages = collectMessages(entries);
-  const userCommandCount = messages.filter((msg) => msg.role === 'user').length;
-  const activeMs = computeActiveDuration(entries);
+  const userCommandCount = hasTranscript
+    ? messages.filter((msg) => msg.role === 'user').length
+    : null;
+  const activeMs = hasTranscript ? computeActiveDuration(entries) : null;
 
   const first = entries[0] || {};
   const last = entries[entries.length - 1] || {};
 
-  const cwd = first?.payload?.cwd || '';
-  const cwdParts = cwd.split(/[\\/]/).filter(Boolean);
-  const projectName = cwdParts[cwdParts.length - 1] || 'Unknown project';
+  const cwd = first?.payload?.cwd || file.cwd || '';
+  const projectName = file.projectName || projectNameFromCwd(cwd);
   const archiveLabel = file.archiveLabel || (file.archive ? 'archived' : 'active');
-  const source = file.source || {};
+  const source = file.source || {
+    id: file.sourceId,
+    name: file.sourceName,
+    codexHome: file.codexHome,
+    sessionsRoot: file.sessionsRoot,
+  };
   const sourceId = source.id || 'default';
+  const sessionId = first?.payload?.id || file.sessionId || 'unknown-id';
+  const displayName = fallbackDisplayName(file, sessionId);
+  const transcriptFirstRequest = getFirstUserRequest(entries);
+  const firstRequest = transcriptFirstRequest === NO_REQUEST_TEXT
+    ? displayName
+    : transcriptFirstRequest;
+  const createdAt = first?.timestamp || file.createdAt || '';
+  const lastMessageAt = file.updatedAt || last?.timestamp || createdAt;
+  const relativePath = sessionPath.replace(/^(\.\.\/)+sessions\//, '');
 
   return {
-    id: `${sourceId}:${archiveLabel}:${path}`,
-    fileName: path.split(/[\\/]/).pop(),
+    id: `${sourceId}:${archiveLabel}:${relativePath || sessionId}`,
+    fileName: safeFileName(sessionPath || file.fullPath),
     projectName,
-    createdAt: first?.timestamp || '',
-    lastMessageAt: last?.timestamp || '',
-    firstRequest: getFirstUserRequest(entries),
-    entryCount: messages.length,
+    createdAt,
+    lastMessageAt,
+    updatedAt: file.updatedAt || lastMessageAt,
+    firstRequest,
+    displayName,
+    threadName: file.threadName || '',
+    entryCount: hasTranscript ? messages.length : null,
     messages,
     userCommandCount,
-    sessionId: first?.payload?.id || 'unknown-id',
+    sessionId,
     cwd,
-    relativePath: path.replace(/^(\.\.\/)+sessions\//, ''),
-    fullPath: file.fullPath || path.replace('../', ''),
+    relativePath,
+    fullPath: file.fullPath || sessionPath.replace('../', ''),
+    url: file.url || '',
     archive: Boolean(file.archive),
     archiveLabel,
     sourceId,
@@ -205,11 +244,12 @@ const parseSingleSession = (file) => {
     codexHome: source.codexHome || '',
     sessionsRoot: source.sessionsRoot || '',
     activeMs,
-    activeDuration: formatDuration(activeMs),
+    activeDuration: hasTranscript ? formatDuration(activeMs) : '',
+    hasTranscript,
   };
 };
 
 export const parseSessions = (rawFiles) =>
   (rawFiles || [])
     .map((file) => parseSingleSession(file))
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    .sort((a, b) => new Date(b.lastMessageAt || b.createdAt) - new Date(a.lastMessageAt || a.createdAt));

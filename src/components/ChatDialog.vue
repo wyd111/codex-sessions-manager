@@ -12,9 +12,17 @@ const props = defineProps({
     type: Function,
     required: true,
   },
+  loading: {
+    type: Boolean,
+    default: false,
+  },
+  error: {
+    type: String,
+    default: '',
+  },
 });
 
-const emit = defineEmits(['update:modelValue', 'copy-resume', 'close']);
+const emit = defineEmits(['update:modelValue', 'show-resume', 'close']);
 
 const close = () => {
   emit('update:modelValue', false);
@@ -23,7 +31,7 @@ const close = () => {
 
 const copyResume = () => {
   if (!props.session) return;
-  emit('copy-resume', props.session);
+  emit('show-resume', props.session);
 };
 </script>
 
@@ -38,14 +46,14 @@ const copyResume = () => {
       <v-card-title class="d-flex align-center">
         <div>
           <div class="text-subtitle-1 font-weight-bold">
-            {{ session.projectName }}
+            {{ session.displayName || session.firstRequest || session.projectName }}
           </div>
           <div class="text-caption text-medium-emphasis">
-            ID: {{ session.sessionId }}
+            会话 ID：{{ session.sessionId }}
           </div>
           <div class="d-flex align-center ga-2 mt-1">
             <v-chip size="x-small" color="primary" variant="tonal">
-              {{ session.sourceName || 'Default sessions' }}
+              {{ session.sourceName || '默认来源' }}
             </v-chip>
             <v-chip
               v-if="session.archive"
@@ -53,7 +61,7 @@ const copyResume = () => {
               color="warning"
               variant="tonal"
             >
-              archived
+              归档
             </v-chip>
           </div>
         </div>
@@ -63,17 +71,31 @@ const copyResume = () => {
           variant="flat"
           size="small"
           class="mr-2"
-          title="Copy to clipboard"
+          title="显示 PowerShell 恢复命令"
           @click="copyResume"
         >
           <v-icon size="16" class="mr-1" icon="mdi-play-circle-outline"></v-icon>
-          Resume cmd
+          恢复命令
         </v-btn>
         <v-btn icon="mdi-close" variant="text" @click="close" />
       </v-card-title>
 
       <v-card-text class="chat-scroll">
-        <div class="d-flex flex-column gap-3">
+        <v-alert v-if="error" type="error" variant="tonal" class="mb-3">
+          {{ error }}
+        </v-alert>
+
+        <div v-if="loading" class="detail-loading">
+          <v-progress-circular indeterminate color="primary" size="28" class="mr-3" />
+          <span class="text-body-2 text-medium-emphasis">正在加载会话详情……</span>
+        </div>
+
+        <div v-else-if="!session.messages?.length && !error" class="empty-detail">
+          <v-icon icon="mdi-message-off-outline" size="24" class="mb-2" />
+          <div class="text-body-2 text-medium-emphasis">暂无可显示的消息。</div>
+        </div>
+
+        <div v-else class="d-flex flex-column gap-3">
           <div
             v-for="(msg, idx) in session.messages"
             :key="`${session.id}-${idx}`"
@@ -89,7 +111,7 @@ const copyResume = () => {
                 :icon="msg.role === 'assistant' ? 'mdi-robot-outline' : 'mdi-account-circle'"
               />
               <span class="mr-2 text-uppercase">
-                {{ msg.role }}
+                {{ msg.role === 'assistant' ? '助手' : '用户' }}
               </span>
               <span>{{ formatDate(msg.timestamp) }}</span>
             </div>
@@ -102,7 +124,7 @@ const copyResume = () => {
 
       <v-card-actions>
         <v-spacer />
-        <v-btn color="primary" variant="flat" @click="close">Close</v-btn>
+        <v-btn color="primary" variant="flat" @click="close">关闭</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -111,6 +133,18 @@ const copyResume = () => {
 <style scoped>
 .chat-scroll {
   max-height: 70vh;
+}
+
+.detail-loading,
+.empty-detail {
+  display: flex;
+  min-height: 180px;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-detail {
+  flex-direction: column;
 }
 
 .chat-row {

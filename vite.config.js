@@ -4,6 +4,7 @@ import vuetify, { transformAssetUrls } from 'vite-plugin-vuetify';
 import fs from 'fs';
 import {
   buildSessionIndex,
+  deleteSessionFile,
   getSessionSources,
   resolveSessionFilePath,
 } from './server/sessionSources.js';
@@ -28,6 +29,26 @@ const sessionsIndex = () => ({
       const sourceId = decodeURIComponent(encodedSourceId || '');
       const rel = decodeURIComponent(encodedRel || '');
       const sources = getSessionSources(process.env, process.cwd());
+
+      if (req.method === 'DELETE') {
+        const result = deleteSessionFile(sources, sourceId, archiveLabel, rel);
+        if (!result.deleted) {
+          res.statusCode = 404;
+          res.end('Session file not found');
+          return;
+        }
+
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify(result));
+        return;
+      }
+
+      if (req.method !== 'GET') {
+        res.statusCode = 405;
+        res.end('Method not allowed');
+        return;
+      }
+
       const filePath = resolveSessionFilePath(sources, sourceId, archiveLabel, rel);
 
       if (!filePath) {

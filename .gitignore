@@ -8,6 +8,7 @@ dist/
 npm-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+vite-5172.*.log
 
 # Environment
 .env

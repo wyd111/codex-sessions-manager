@@ -51,7 +51,7 @@ This section covers deploying on a Windows machine that uses WSL2 for Codex, wit
 
 ### Environment Configuration
 - Copy `.env.example` to `.env` if present (or create `.env`) and set:
-  - `CODEX_SESSION_SOURCES='[{"id":"default-apikey","name":"Default API Key","codexHome":"C:/Users/15693/.codex"}]'`
+  - `CODEX_SESSION_SOURCES='[{"id":"default-apikey","name":"Default API Key","codexHome":"C:/Users/<WindowsUser>/.codex"}]'`
   - or the legacy fallback `SESSIONS_ROOT_PATH=/home/<user>/.codex/sessions`
   - `VITE_HOST=0.0.0.0` (default binding for dev/preview)
   - `VITE_PORT=5172` (default port; change if needed to avoid conflicts)
@@ -62,8 +62,8 @@ This section covers deploying on a Windows machine that uses WSL2 for Codex, wit
 
 ```env
 CODEX_SESSION_SOURCES='[
-  {"id":"default-apikey","name":"Default API Key","codexHome":"C:/Users/15693/.codex"},
-  {"id":"chatgpt","name":"ChatGPT Login","codexHome":"C:/Users/15693/.codex-chatgpt"}
+  {"id":"default-apikey","name":"Default API Key","codexHome":"C:/Users/<WindowsUser>/.codex"},
+  {"id":"chatgpt","name":"ChatGPT Login","codexHome":"C:/Users/<WindowsUser>/.codex-chatgpt"}
 ]'
 ```
 
@@ -85,7 +85,7 @@ CODEX_SESSION_SOURCES='[
 When a source has `codexHome`, copied resume commands include the matching `CODEX_HOME`, for example:
 
 ```powershell
-$env:CODEX_HOME="C:\Users\15693\.codex"; Set-Location "E:\AI\Project"; codex resume <SESSION_ID>
+$env:CODEX_HOME="C:\Users\<WindowsUser>\.codex"; Set-Location "E:\AI\Project"; codex resume <SESSION_ID>
 ```
 
 This keeps API-key sessions and ChatGPT-login sessions visible in one UI even when the official Codex app or picker filters by the currently active login.

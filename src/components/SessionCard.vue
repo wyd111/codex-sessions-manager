@@ -1,169 +1,225 @@
 <script setup>
+import { computed } from 'vue';
+
 const props = defineProps({
   session: {
     type: Object,
     required: true,
   },
-  tone: {
-    type: String,
-    default: '#eef2ff',
-  },
   formatDate: {
     type: Function,
     required: true,
   },
+  selected: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-const emit = defineEmits(['open', 'copy-resume', 'copy-remove']);
+const emit = defineEmits(['open', 'show-resume', 'delete-session', 'toggle-select']);
+
+const title = computed(
+  () =>
+    props.session.displayName ||
+    props.session.threadName ||
+    props.session.firstRequest ||
+    props.session.sessionId ||
+    '未命名会话',
+);
+
+const dateText = computed(() =>
+  props.formatDate(
+    props.session.lastMessageAt || props.session.updatedAt || props.session.createdAt,
+  ),
+);
 
 const handleOpen = () => emit('open', props.session);
-const handleCopyResume = () => emit('copy-resume', props.session);
-const handleCopyRemove = () => emit('copy-remove', props.session);
+const handleShowResume = () => emit('show-resume', props.session);
+const handleDelete = () => emit('delete-session', props.session);
+const handleToggleSelect = (value) => emit('toggle-select', props.session, value);
 </script>
 
 <template>
-  <v-card
-    elevation="2"
-    class="h-100 card-shaded"
-    :style="{ backgroundColor: tone }"
-  >
-    <v-card-item>
-      <div class="d-flex align-center justify-space-between mb-2">
-        <v-avatar color="primary" variant="tonal" size="40" class="mr-3">
-          <v-icon icon="mdi-folder-cog" color="primary"></v-icon>
-        </v-avatar>
-        <div class="mr-auto">
-          <div class="text-subtitle-1 font-weight-bold">
-            {{ session.projectName }}
-          </div>
-          <div class="text-caption text-medium-emphasis">
-            ID: {{ session.sessionId }}
-          </div>
-          <div class="text-caption text-medium-emphasis">
-            Source: {{ session.sourceName || 'Default sessions' }}
-          </div>
-        </div>
-        <div class="d-flex flex-column align-end ga-1">
-          <v-chip size="small" color="primary" variant="tonal" class="ml-2">
-            {{ session.entryCount }} entries
-          </v-chip>
-          <v-chip
-            v-if="session.archive"
-            size="small"
-            color="warning"
-            variant="tonal"
-            class="ml-2"
-          >
-            archived
-          </v-chip>
-        </div>
-      </div>
+  <div class="session-row" role="button" tabindex="0" @click="handleOpen" @keyup.enter="handleOpen">
+    <div class="row-select" @click.stop>
+      <v-checkbox-btn
+        :model-value="selected"
+        density="compact"
+        color="primary"
+        :aria-label="`选择 ${title}`"
+        @update:model-value="handleToggleSelect"
+      />
+    </div>
 
-      <v-divider class="my-3" />
+    <div class="row-icon">
+      <v-icon icon="mdi-message-text-outline" size="20" />
+    </div>
 
-      <div class="d-flex flex-column flex-md-row justify-space-between gap-4">
-        <div class="d-flex align-center">
-          <v-icon icon="mdi-calendar-start" color="primary" size="18" class="mr-2"></v-icon>
-          <div>
-            <div class="text-caption text-medium-emphasis">Created</div>
-            <div class="text-body-2">{{ formatDate(session.createdAt) }}</div>
-          </div>
+    <div class="row-main">
+      <div class="d-flex align-center flex-wrap ga-2">
+        <div class="session-title">
+          {{ title }}
         </div>
-        <div class="d-flex align-center">
-          <v-icon icon="mdi-clock-outline" color="primary" size="18" class="mr-2"></v-icon>
-          <div>
-            <div class="text-caption text-medium-emphasis">Last message</div>
-            <div class="text-body-2">{{ formatDate(session.lastMessageAt) }}</div>
-          </div>
-        </div>
-        <div class="d-flex align-center">
-          <v-icon icon="mdi-timer-sand" color="primary" size="18" class="mr-2"></v-icon>
-          <div>
-            <div class="text-caption text-medium-emphasis">Active</div>
-            <div class="text-body-2">{{ session.activeDuration }}</div>
-          </div>
-        </div>
-      </div>
-    </v-card-item>
-
-    <v-divider />
-
-    <v-card-text>
-      <div class="text-caption text-medium-emphasis mb-2">First user request</div>
-      <div class="text-body-2 line-clamp">
-        {{ session.firstRequest }}
-      </div>
-    </v-card-text>
-
-    <v-card-actions class="action-row">
-      <div class="d-flex align-center action-buttons">
-        <v-btn color="primary" variant="flat" size="small" title="Copy to clipboard" @click="handleCopyResume">
-          <v-icon size="16" class="mr-1" icon="mdi-play-circle-outline"></v-icon>
-          Resume cmd
-        </v-btn>
-        <v-btn
-          color="red"
-          variant="flat"
-          size="small"
-          class="ml-2"
-          title="Copy to clipboard"
-          @click="handleCopyRemove"
+        <v-chip
+          v-if="session.archive"
+          size="x-small"
+          color="warning"
+          variant="tonal"
         >
-          <v-icon size="16" class="mr-1" icon="mdi-delete-outline"></v-icon>
-          Remove cmd
-        </v-btn>
-        <v-spacer />
-        <v-btn color="primary" variant="flat" size="small" @click="handleOpen">
-          <v-icon size="16" class="mr-1" icon="mdi-chat-outline"></v-icon>
-          Show more
-        </v-btn>
+          归档
+        </v-chip>
       </div>
-    </v-card-actions>
-  </v-card>
+      <div class="session-meta text-caption text-medium-emphasis">
+        <span>{{ dateText }}</span>
+        <span class="dot">•</span>
+        <span>{{ session.sourceName || '默认来源' }}</span>
+        <span v-if="session.cwd" class="dot">•</span>
+        <span v-if="session.cwd" class="path">{{ session.cwd }}</span>
+      </div>
+    </div>
+
+    <div
+      v-if="session.hasTranscript"
+      class="row-extra text-caption text-medium-emphasis d-none d-lg-flex"
+    >
+      <span>{{ session.entryCount || 0 }} 条消息</span>
+      <span class="dot">•</span>
+      <span>{{ session.activeDuration || '0秒' }}</span>
+    </div>
+    <div v-else class="row-extra text-caption text-medium-emphasis d-none d-lg-flex">
+      点详情查看消息
+    </div>
+
+    <div class="row-actions">
+      <v-btn
+        color="primary"
+        variant="text"
+        size="small"
+        title="显示 PowerShell 恢复命令"
+        @click.stop="handleShowResume"
+      >
+        <v-icon size="16" class="mr-1" icon="mdi-play-circle-outline" />
+        恢复命令
+      </v-btn>
+      <v-btn
+        color="error"
+        variant="text"
+        size="small"
+        title="删除该会话"
+        @click.stop="handleDelete"
+      >
+        <v-icon size="16" class="mr-1" icon="mdi-delete-outline" />
+        删除
+      </v-btn>
+      <v-btn
+        color="primary"
+        variant="flat"
+        size="small"
+        title="查看会话详情"
+        @click.stop="handleOpen"
+      >
+        详情
+      </v-btn>
+    </div>
+  </div>
 </template>
 
 <style scoped>
-.line-clamp {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.card-shaded {
-  border: 1px solid rgba(0, 0, 0, 0.04);
-  position: relative;
-  overflow: hidden;
-}
-
-.action-buttons {
-  width: 100%;
+.session-row {
+  display: grid;
+  grid-template-columns: 28px 34px minmax(0, 1fr) auto auto;
+  gap: 12px;
   align-items: center;
+  min-height: 66px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(31, 41, 55, 0.07);
+  background: rgba(255, 255, 255, 0.78);
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.15s ease;
 }
 
-.action-row {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -10px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s ease, transform 0.25s ease;
-  background: rgba(0, 0, 0, 0.28);
-  backdrop-filter: blur(4px);
-  color: #fff;
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
-  border-bottom-left-radius: 10px;
-  border-bottom-right-radius: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
-  padding: 14px 12px 22px;
-  transform: translateY(10px);
+.row-select {
+  display: grid;
+  place-items: center;
 }
 
-.card-shaded:hover .action-row {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateY(0);
+.session-row:last-child {
+  border-bottom: 0;
+}
+
+.session-row:hover {
+  background: rgba(244, 247, 251, 0.96);
+}
+
+.session-row:focus-visible {
+  outline: 2px solid rgb(var(--v-theme-primary));
+  outline-offset: -2px;
+}
+
+.row-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  color: rgb(var(--v-theme-primary));
+  background: rgba(var(--v-theme-primary), 0.08);
+}
+
+.row-main {
+  min-width: 0;
+}
+
+.session-title {
+  max-width: 100%;
+  overflow: hidden;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 3px;
+}
+
+.path {
+  max-width: 420px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dot {
+  color: rgba(107, 114, 128, 0.72);
+}
+
+.row-extra {
+  min-width: 120px;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+@media (max-width: 960px) {
+  .session-row {
+    grid-template-columns: 28px 34px minmax(0, 1fr);
+  }
+
+  .row-actions {
+    grid-column: 3;
+    justify-content: flex-start;
+  }
 }
 </style>

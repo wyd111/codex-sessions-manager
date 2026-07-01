@@ -98,7 +98,7 @@
 - Modify: `.env.example`
 - Modify: `README.md`
 
-- [ ] Document `CODEX_SESSION_SOURCES` with a Windows example for `C:/Users/15693/.codex`.
+- [ ] Document `CODEX_SESSION_SOURCES` with a Windows example for `C:/Users/<WindowsUser>/.codex`.
 - [ ] Keep the original `SESSIONS_ROOT_PATH` Docker/WSL setup documented as fallback.
 - [ ] Run `pnpm test -- --run`.
 - [ ] Run `pnpm run build`.

@@ -11,7 +11,7 @@ export const sourceOptionsFromSessions = (sessions) => {
   }
 
   return [
-    { title: 'All sources', value: ALL_SOURCES_VALUE },
+    { title: '全部来源', value: ALL_SOURCES_VALUE },
     ...Array.from(byId.values()).sort((a, b) => a.title.localeCompare(b.title)),
   ];
 };
