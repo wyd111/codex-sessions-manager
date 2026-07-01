@@ -43,6 +43,19 @@ const copyResume = () => {
           <div class="text-caption text-medium-emphasis">
             ID: {{ session.sessionId }}
           </div>
+          <div class="d-flex align-center ga-2 mt-1">
+            <v-chip size="x-small" color="primary" variant="tonal">
+              {{ session.sourceName || 'Default sessions' }}
+            </v-chip>
+            <v-chip
+              v-if="session.archive"
+              size="x-small"
+              color="warning"
+              variant="tonal"
+            >
+              archived
+            </v-chip>
+          </div>
         </div>
         <v-spacer />
         <v-btn

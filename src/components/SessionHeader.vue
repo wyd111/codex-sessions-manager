@@ -14,13 +14,26 @@ const props = defineProps({
     type: Number,
     default: 0,
   },
+  sourceFilter: {
+    type: String,
+    required: true,
+  },
+  sourceOptions: {
+    type: Array,
+    required: true,
+  },
   showEmpty: {
     type: Boolean,
     default: false,
   },
 });
 
-const emit = defineEmits(['update:groupBy', 'update:showEmpty', 'refresh']);
+const emit = defineEmits([
+  'update:groupBy',
+  'update:sourceFilter',
+  'update:showEmpty',
+  'refresh',
+]);
 
 const groupModel = computed({
   get: () => props.groupBy,
@@ -30,6 +43,11 @@ const groupModel = computed({
 const showEmptyModel = computed({
   get: () => props.showEmpty,
   set: (value) => emit('update:showEmpty', value),
+});
+
+const sourceFilterModel = computed({
+  get: () => props.sourceFilter,
+  set: (value) => emit('update:sourceFilter', value),
 });
 </script>
 
@@ -42,6 +60,14 @@ const showEmptyModel = computed({
       </p>
     </div>
     <div class="d-flex align-center gap-3 flex-wrap">
+      <v-select
+        v-model="sourceFilterModel"
+        :items="sourceOptions"
+        label="Source"
+        density="comfortable"
+        hide-details
+        class="source-select mr-3"
+      />
       <v-btn-toggle
         v-model="groupModel"
         divided
@@ -96,6 +122,10 @@ const showEmptyModel = computed({
 
 .group-toggle {
   min-width: 260px;
+}
+
+.source-select {
+  min-width: 220px;
 }
 
 .refresh-btn {

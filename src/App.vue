@@ -10,14 +10,23 @@ import {
 } from './utils/sessionCommands';
 import { loadSessions } from './utils/sessionApi';
 import { NO_REQUEST_TEXT, formatDate, formatDuration, parseSessions } from './utils/sessionParsing';
+import {
+  ALL_SOURCES_VALUE,
+  filterSessionsBySource,
+  sourceOptionsFromSessions,
+} from './utils/sessionSources';
 import { projectTone } from './utils/projectTone';
 
 const rawSessionFiles = ref([]);
 
 const showEmpty = ref(false);
+const sourceFilter = ref(ALL_SOURCES_VALUE);
+
+const parsedSessions = computed(() => parseSessions(rawSessionFiles.value));
+const sourceOptions = computed(() => sourceOptionsFromSessions(parsedSessions.value));
 
 const sessions = computed(() => {
-  let list = parseSessions(rawSessionFiles.value);
+  let list = filterSessionsBySource(parsedSessions.value, sourceFilter.value);
   if (!showEmpty.value) {
     list = list.filter((session) => session.firstRequest !== NO_REQUEST_TEXT);
   }
@@ -27,7 +36,7 @@ const sessions = computed(() => {
 const sessionsList = computed(() => {
   const unique = new Map();
   sessions.value.forEach((s) => {
-    const key = s.sessionId || s.id;
+    const key = `${s.sourceId || 'default'}:${s.sessionId || s.id}`;
     const current = unique.get(key);
     if (!current) {
       unique.set(key, s);
@@ -46,6 +55,7 @@ const groupBy = ref('project');
 
 const groupOptions = [
   { title: 'By project', value: 'project' },
+  { title: 'By source', value: 'source' },
   { title: 'By date', value: 'date' },
   { title: 'No grouping', value: 'none' },
 ];
@@ -69,10 +79,14 @@ const groupedSessions = computed(() => {
 
   const map = new Map();
   list.forEach((session) => {
-    const key =
-      groupBy.value === 'project'
-        ? session.projectName || 'Unknown project'
-        : formatDay(session.createdAt);
+    let key;
+    if (groupBy.value === 'project') {
+      key = session.projectName || 'Unknown project';
+    } else if (groupBy.value === 'source') {
+      key = session.sourceName || 'Unknown source';
+    } else {
+      key = formatDay(session.createdAt);
+    }
     if (!map.has(key)) map.set(key, []);
     map.get(key).push(session);
   });
@@ -159,7 +173,9 @@ const copyRemove = async (session) => {
         <SessionHeader
           v-model:group-by="groupBy"
           v-model:show-empty="showEmpty"
+          v-model:source-filter="sourceFilter"
           :group-options="groupOptions"
+          :source-options="sourceOptions"
           :sessions-count="sessions.length"
           @refresh="refreshSessions"
         />

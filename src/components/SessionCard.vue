@@ -39,10 +39,24 @@ const handleCopyRemove = () => emit('copy-remove', props.session);
           <div class="text-caption text-medium-emphasis">
             ID: {{ session.sessionId }}
           </div>
+          <div class="text-caption text-medium-emphasis">
+            Source: {{ session.sourceName || 'Default sessions' }}
+          </div>
         </div>
-        <v-chip size="small" color="primary" variant="tonal" class="ml-2">
-          {{ session.entryCount }} entries
-        </v-chip>
+        <div class="d-flex flex-column align-end ga-1">
+          <v-chip size="small" color="primary" variant="tonal" class="ml-2">
+            {{ session.entryCount }} entries
+          </v-chip>
+          <v-chip
+            v-if="session.archive"
+            size="small"
+            color="warning"
+            variant="tonal"
+            class="ml-2"
+          >
+            archived
+          </v-chip>
+        </div>
       </div>
 
       <v-divider class="my-3" />
