@@ -24,3 +24,6 @@ AGENTS.md
 # Sessions data (mounted/externally managed)
 sessions/
 /examples/
+
+# Local feature worktrees
+.worktrees/
