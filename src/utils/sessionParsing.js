@@ -58,6 +58,8 @@ export const parseJsonBlocks = (raw) => {
   const blocks = [];
   let buffer = [];
   let depth = 0;
+  let inString = false;
+  let escaping = false;
 
   const flushBuffer = () => {
     if (!buffer.length) return;
@@ -71,23 +73,45 @@ export const parseJsonBlocks = (raw) => {
     }
   };
 
+  const updateDepth = (line) => {
+    for (let index = 0; index < line.length; index += 1) {
+      const char = line[index];
+
+      if (inString) {
+        if (escaping) {
+          escaping = false;
+        } else if (char === '\\') {
+          escaping = true;
+        } else if (char === '"') {
+          inString = false;
+        }
+        continue;
+      }
+
+      if (char === '"') {
+        inString = true;
+      } else if (char === '{') {
+        depth += 1;
+      } else if (char === '}') {
+        depth -= 1;
+      }
+    }
+  };
+
   for (const line of (raw || '').split('\n')) {
     if (!buffer.length && !line.trim()) {
       continue;
     }
 
-    const clean = line.replace(/"(?:\\.|[^"\\])*"/g, '');
-    depth += (clean.match(/{/g) || []).length;
-    depth -= (clean.match(/}/g) || []).length;
-
+    updateDepth(line);
     buffer.push(line);
 
-    if (depth === 0) {
+    if (depth === 0 && !inString) {
       flushBuffer();
     }
   }
 
-  if (depth === 0) {
+  if (depth === 0 && !inString) {
     flushBuffer();
   }
 

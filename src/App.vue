@@ -21,6 +21,8 @@ const rawSessionFiles = ref([]);
 
 const showEmpty = ref(false);
 const sourceFilter = ref(ALL_SOURCES_VALUE);
+const isLoading = ref(false);
+const loadError = ref('');
 
 const parsedSessions = computed(() => parseSessions(rawSessionFiles.value));
 const sourceOptions = computed(() => sourceOptionsFromSessions(parsedSessions.value));
@@ -123,7 +125,17 @@ const dialogSession = ref(null);
 const dialogOpen = ref(false);
 
 const refreshSessions = async () => {
-  rawSessionFiles.value = await loadSessions();
+  isLoading.value = true;
+  loadError.value = '';
+  try {
+    rawSessionFiles.value = await loadSessions();
+  } catch (err) {
+    console.warn('Failed to refresh sessions', err);
+    loadError.value = err?.message || 'Failed to load session files.';
+    rawSessionFiles.value = [];
+  } finally {
+    isLoading.value = false;
+  }
 };
 
 refreshSessions();
@@ -181,6 +193,24 @@ const copyRemove = async (session) => {
         />
 
         <div class="page-pad">
+          <v-alert
+            v-if="isLoading"
+            type="info"
+            variant="tonal"
+            class="mb-4"
+          >
+            Loading local session files. Large Codex homes may take a moment on first load.
+          </v-alert>
+
+          <v-alert
+            v-if="loadError"
+            type="error"
+            variant="tonal"
+            class="mb-4"
+          >
+            {{ loadError }}
+          </v-alert>
+
           <div v-for="group in groupedSessions" :key="group.label || 'all'" class="mb-6">
             <div v-if="group.label" class="d-flex align-center mb-2">
               <div class="text-subtitle-1 font-weight-semibold text-medium-emphasis mr-2">
@@ -223,7 +253,7 @@ const copyRemove = async (session) => {
           </div>
 
           <v-alert
-            v-if="!sessions.length"
+            v-if="!isLoading && !sessions.length"
             type="info"
             variant="tonal"
             class="mt-4"

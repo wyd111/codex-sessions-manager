@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseSessions } from '../src/utils/sessionParsing.js';
+import { parseJsonBlocks, parseSessions } from '../src/utils/sessionParsing.js';
 
 const sessionRaw = [
   JSON.stringify({
@@ -64,5 +64,24 @@ describe('parseSessions', () => {
       firstRequest: 'Build multi-source session support',
       entryCount: 2,
     });
+  });
+});
+
+describe('parseJsonBlocks', () => {
+  it('parses very large single-line JSON blocks without overflowing the stack', () => {
+    const raw = JSON.stringify({
+      timestamp: '2026-07-01T01:00:00.000Z',
+      type: 'session_meta',
+      payload: {
+        id: '019f1-large',
+        cwd: 'E:\\AI\\Project',
+        base_instructions: 'x'.repeat(8 * 1024 * 1024),
+      },
+    });
+
+    const [block] = parseJsonBlocks(raw);
+
+    expect(block.payload.id).toBe('019f1-large');
+    expect(block.payload.base_instructions).toHaveLength(8 * 1024 * 1024);
   });
 });
