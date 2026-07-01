@@ -3,6 +3,11 @@ import { computed, ref } from 'vue';
 import ChatDialog from './components/ChatDialog.vue';
 import SessionCard from './components/SessionCard.vue';
 import SessionHeader from './components/SessionHeader.vue';
+import {
+  buildNewSessionCommand,
+  buildRemoveCommand,
+  buildResumeCommand,
+} from './utils/sessionCommands';
 import { loadSessions } from './utils/sessionApi';
 import { NO_REQUEST_TEXT, formatDate, formatDuration, parseSessions } from './utils/sessionParsing';
 import { projectTone } from './utils/projectTone';
@@ -109,8 +114,6 @@ const refreshSessions = async () => {
 
 refreshSessions();
 
-const removeRoot = (import.meta.env.SESSIONS_ROOT_PATH || '').replace(/\/$/, '');
-
 const openSession = (session) => {
   dialogSession.value = session;
   dialogOpen.value = true;
@@ -122,7 +125,7 @@ const closeSession = () => {
 };
 
 const copyResume = async (session) => {
-  const cmd = `cd ${session.cwd} && codex resume ${session.sessionId}`;
+  const cmd = buildResumeCommand(session);
   try {
     await navigator.clipboard.writeText(cmd);
   } catch (err) {
@@ -131,7 +134,7 @@ const copyResume = async (session) => {
 };
 
 const copyNewSession = async (session) => {
-  const cmd = `cd ${session.cwd} && codex`;
+  const cmd = buildNewSessionCommand(session);
   try {
     await navigator.clipboard.writeText(cmd);
   } catch (err) {
@@ -140,9 +143,7 @@ const copyNewSession = async (session) => {
 };
 
 const copyRemove = async (session) => {
-  const rel = (session.relativePath || session.fullPath || '').replace(/^\/+/, '');
-  const base = removeRoot ? `${removeRoot}/${rel}` : rel;
-  const cmd = `rm ${base}`;
+  const cmd = buildRemoveCommand(session);
   try {
     await navigator.clipboard.writeText(cmd);
   } catch (err) {
