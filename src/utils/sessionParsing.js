@@ -143,7 +143,8 @@ const computeActiveDuration = (entries) => {
   return total;
 };
 
-const parseSingleSession = ({ path, raw }) => {
+const parseSingleSession = (file) => {
+  const { path, raw } = file;
   const entries = parseJsonBlocks(raw);
   const messages = collectMessages(entries);
   const userCommandCount = messages.filter((msg) => msg.role === 'user').length;
@@ -153,12 +154,15 @@ const parseSingleSession = ({ path, raw }) => {
   const last = entries[entries.length - 1] || {};
 
   const cwd = first?.payload?.cwd || '';
-  const cwdParts = cwd.split('/').filter(Boolean);
+  const cwdParts = cwd.split(/[\\/]/).filter(Boolean);
   const projectName = cwdParts[cwdParts.length - 1] || 'Unknown project';
+  const archiveLabel = file.archiveLabel || (file.archive ? 'archived' : 'active');
+  const source = file.source || {};
+  const sourceId = source.id || 'default';
 
   return {
-    id: path,
-    fileName: path.split('/').pop(),
+    id: `${sourceId}:${archiveLabel}:${path}`,
+    fileName: path.split(/[\\/]/).pop(),
     projectName,
     createdAt: first?.timestamp || '',
     lastMessageAt: last?.timestamp || '',
@@ -169,7 +173,13 @@ const parseSingleSession = ({ path, raw }) => {
     sessionId: first?.payload?.id || 'unknown-id',
     cwd,
     relativePath: path.replace(/^(\.\.\/)+sessions\//, ''),
-    fullPath: path.replace('../', ''),
+    fullPath: file.fullPath || path.replace('../', ''),
+    archive: Boolean(file.archive),
+    archiveLabel,
+    sourceId,
+    sourceName: source.name || sourceId,
+    codexHome: source.codexHome || '',
+    sessionsRoot: source.sessionsRoot || '',
     activeMs,
     activeDuration: formatDuration(activeMs),
   };
