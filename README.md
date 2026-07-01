@@ -23,7 +23,9 @@ This application solves that problem by providing a clean, convenient UI for bro
 - 📝 **View the full conversation history within each session**  
   No need to open or parse raw JSON files manually.
 - 🧹 **Filter or delete empty and unwanted sessions**
-- 🗂 **Group sessions by date or by project**
+- 🗂 **Group sessions by date, project, or source**
+- 👥 **Manage multiple local Codex homes**
+  Configure API-key and ChatGPT-login session roots as separate local sources without logging in or touching `auth.json`.
 - 📊 **View detailed statistics**, including:
     - number of commands issued per session
     - time spent inside a session
@@ -49,10 +51,44 @@ This section covers deploying on a Windows machine that uses WSL2 for Codex, wit
 
 ### Environment Configuration
 - Copy `.env.example` to `.env` if present (or create `.env`) and set:
-  - `SESSIONS_ROOT_PATH=/home/<user>/.codex/sessions`
+  - `CODEX_SESSION_SOURCES='[{"id":"default-apikey","name":"Default API Key","codexHome":"C:/Users/15693/.codex"}]'`
+  - or the legacy fallback `SESSIONS_ROOT_PATH=/home/<user>/.codex/sessions`
   - `VITE_HOST=0.0.0.0` (default binding for dev/preview)
   - `VITE_PORT=5172` (default port; change if needed to avoid conflicts)
 - Never hardcode absolute Windows paths in code; use the env var above.
+
+### Multi-source local session management
+`CODEX_SESSION_SOURCES` is the recommended configuration when you use different Codex accounts or auth modes on the same computer. Each source is local-only and does not perform login.
+
+```env
+CODEX_SESSION_SOURCES='[
+  {"id":"default-apikey","name":"Default API Key","codexHome":"C:/Users/15693/.codex"},
+  {"id":"chatgpt","name":"ChatGPT Login","codexHome":"C:/Users/15693/.codex-chatgpt"}
+]'
+```
+
+For each `codexHome`, the app scans:
+
+```text
+<codexHome>/sessions
+<codexHome>/archived_sessions
+```
+
+You can also point a source directly at a mounted sessions directory:
+
+```env
+CODEX_SESSION_SOURCES='[
+  {"id":"wsl","name":"WSL mounted sessions","sessionsPath":"/home/<user>/.codex/sessions"}
+]'
+```
+
+When a source has `codexHome`, copied resume commands include the matching `CODEX_HOME`, for example:
+
+```powershell
+$env:CODEX_HOME="C:\Users\15693\.codex"; Set-Location "E:\AI\Project"; codex resume <SESSION_ID>
+```
+
+This keeps API-key sessions and ChatGPT-login sessions visible in one UI even when the official Codex app or picker filters by the currently active login.
 
 ### Running in Docker (Node in container, Codex in WSL)
 1) **Open the project in WSL:**  
@@ -93,6 +129,8 @@ docker run --rm -it \
 Serve the `dist/` directory with your preferred static server (e.g., `pnpm run preview -- --host "$VITE_HOST" --port "$VITE_PORT"`).
 
 ### Troubleshooting
-- **No sessions visible:** Confirm the volume mount path and `SESSIONS_ROOT_PATH` match `/home/<user>/.codex/sessions`. Ensure Codex has created session files.
+- **No sessions visible:** Confirm `CODEX_SESSION_SOURCES` points at an existing `codexHome`, or that `SESSIONS_ROOT_PATH` matches `/home/<user>/.codex/sessions`. Ensure Codex has created session files.
+- **Only one account appears:** Existing historical JSONL files may not contain account/auth metadata. Add each separate `CODEX_HOME` as its own source instead of relying on automatic account inference.
+- **Copied resume command opens the wrong account:** Use a source with `codexHome`; direct `sessionsPath` sources cannot set `CODEX_HOME` because they do not identify the owning Codex home.
 - **Port conflicts:** Change the `-p` mapping and `--port` flag consistently.
 - **Permissions issues:** Verify your WSL user owns the session directory; use `chmod -R` or `chown` inside WSL if needed.
