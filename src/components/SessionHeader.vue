@@ -10,6 +10,18 @@ const props = defineProps({
     type: Array,
     required: true,
   },
+  labels: {
+    type: Object,
+    required: true,
+  },
+  language: {
+    type: String,
+    required: true,
+  },
+  languageOptions: {
+    type: Array,
+    required: true,
+  },
   sessionsCount: {
     type: Number,
     default: 0,
@@ -30,6 +42,7 @@ const props = defineProps({
 
 const emit = defineEmits([
   'update:groupBy',
+  'update:language',
   'update:sourceFilter',
   'update:showEmpty',
   'refresh',
@@ -38,6 +51,11 @@ const emit = defineEmits([
 const groupModel = computed({
   get: () => props.groupBy,
   set: (value) => emit('update:groupBy', value),
+});
+
+const languageModel = computed({
+  get: () => props.language,
+  set: (value) => emit('update:language', value),
 });
 
 const showEmptyModel = computed({
@@ -54,16 +72,24 @@ const sourceFilterModel = computed({
 <template>
   <div class="header-sticky d-flex align-center justify-space-between flex-wrap px-4 px-md-6">
     <div class="title-block">
-      <h1 class="text-h5 font-weight-bold mb-1">Codex 会话管理</h1>
+      <h1 class="text-h5 font-weight-bold mb-1">{{ labels.appTitle }}</h1>
       <p class="text-body-2 text-medium-emphasis">
-        管理当前电脑上的 Codex 本地会话；支持不同 CODEX_HOME 来源切换。
+        {{ labels.appSubtitle }}
       </p>
     </div>
     <div class="d-flex align-center gap-3 flex-wrap">
       <v-select
+        v-model="languageModel"
+        :items="languageOptions"
+        :label="labels.languageLabel"
+        density="compact"
+        hide-details
+        class="language-select mr-3"
+      />
+      <v-select
         v-model="sourceFilterModel"
         :items="sourceOptions"
-        label="来源"
+        :label="labels.sourceLabel"
         density="compact"
         hide-details
         class="source-select mr-3"
@@ -84,13 +110,13 @@ const sourceFilterModel = computed({
         </v-btn>
       </v-btn-toggle>
       <v-chip color="primary" variant="flat" class="text-body-2">
-        {{ sessionsCount }} 个会话
+        {{ sessionsCount }} {{ labels.sessionsUnit }}
       </v-chip>
       <v-checkbox
         v-model="showEmptyModel"
         density="compact"
         hide-details
-        label="显示空会话"
+        :label="labels.showEmpty"
         class="ml-2"
       />
       <v-btn
@@ -101,7 +127,7 @@ const sourceFilterModel = computed({
         @click="emit('refresh')"
       >
         <v-icon size="18" class="mr-1" icon="mdi-refresh"></v-icon>
-        刷新
+        {{ labels.refresh }}
       </v-btn>
     </div>
   </div>
@@ -130,6 +156,10 @@ const sourceFilterModel = computed({
 
 .source-select {
   min-width: 190px;
+}
+
+.language-select {
+  min-width: 150px;
 }
 
 .refresh-btn {

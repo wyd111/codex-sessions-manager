@@ -19,6 +19,12 @@ describe('sourceOptionsFromSessions', () => {
       { title: 'Default API Key', value: 'api' },
     ]);
   });
+
+  it('allows the all-sources label to be localized', () => {
+    expect(sourceOptionsFromSessions([], 'All sources')).toEqual([
+      { title: 'All sources', value: ALL_SOURCES_VALUE },
+    ]);
+  });
 });
 
 describe('filterSessionsBySource', () => {

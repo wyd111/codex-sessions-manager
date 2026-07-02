@@ -7,6 +7,12 @@ import {
   buildNewSessionCommand,
   buildResumeCommand,
 } from './utils/sessionCommands';
+import {
+  LANGUAGE_OPTIONS,
+  getInitialLanguage,
+  storeLanguage,
+  translate,
+} from './utils/i18n';
 import { deleteSessions, loadSessionRaw, loadSessions } from './utils/sessionApi';
 import { NO_REQUEST_TEXT, formatDate, formatDuration, parseSessions } from './utils/sessionParsing';
 import {
@@ -30,9 +36,27 @@ const commandDialogOpen = ref(false);
 const commandDialogCommand = ref('');
 const commandDialogCopied = ref(false);
 const commandDialogError = ref('');
+const language = ref(getInitialLanguage());
+
+const languageModel = computed({
+  get: () => language.value,
+  set: (value) => {
+    language.value = value;
+    storeLanguage(value);
+  },
+});
+
+const locale = computed(() => (language.value === 'en-US' ? 'en-US' : 'zh-CN'));
+const tx = (key, params) => translate(language.value, key, params);
+const localizedFormatDate = (value) => {
+  const formatted = formatDate(value, locale.value);
+  return formatted === 'N/A' ? tx('common.na') : formatted;
+};
 
 const parsedSessions = computed(() => parseSessions(rawSessionFiles.value));
-const sourceOptions = computed(() => sourceOptionsFromSessions(parsedSessions.value));
+const sourceOptions = computed(() =>
+  sourceOptionsFromSessions(parsedSessions.value, tx('source.all')),
+);
 
 const sessions = computed(() => {
   let list = filterSessionsBySource(parsedSessions.value, sourceFilter.value);
@@ -111,18 +135,18 @@ const selectSessions = (items) => {
 
 const groupBy = ref('project');
 
-const groupOptions = [
-  { title: '按项目', value: 'project' },
-  { title: '按来源', value: 'source' },
-  { title: '按日期', value: 'date' },
-  { title: '不分组', value: 'none' },
-];
+const groupOptions = computed(() => [
+  { title: tx('group.project'), value: 'project' },
+  { title: tx('group.source'), value: 'source' },
+  { title: tx('group.date'), value: 'date' },
+  { title: tx('group.none'), value: 'none' },
+]);
 
 const formatDay = (value) => {
-  if (!value) return '未知日期';
+  if (!value) return tx('common.unknownDate');
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '未知日期';
-  return new Intl.DateTimeFormat('zh-CN', {
+  if (Number.isNaN(date.getTime())) return tx('common.unknownDate');
+  return new Intl.DateTimeFormat(locale.value, {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -139,9 +163,9 @@ const groupedSessions = computed(() => {
   list.forEach((session) => {
     let key;
     if (groupBy.value === 'project') {
-      key = session.projectName || '未知项目';
+      key = session.projectName || tx('common.unknownProject');
     } else if (groupBy.value === 'source') {
-      key = session.sourceName || '未知来源';
+      key = session.sourceName || tx('common.unknownSource');
     } else {
       key = formatDay(session.lastMessageAt || session.updatedAt || session.createdAt);
     }
@@ -172,9 +196,48 @@ const groupedSessions = computed(() => {
       return sessionSortTime(b.items[0] || {}) - sessionSortTime(a.items[0] || {});
     }
     return sessionSortTime(b.items[0] || {}) - sessionSortTime(a.items[0] || {})
-      || String(a.label).localeCompare(String(b.label), 'zh-CN');
+      || String(a.label).localeCompare(String(b.label), locale.value);
   });
 });
+
+const headerLabels = computed(() => ({
+  appTitle: tx('app.title'),
+  appSubtitle: tx('app.subtitle'),
+  languageLabel: tx('common.language'),
+  sourceLabel: tx('source.label'),
+  sessionsUnit: tx('common.sessionsUnit'),
+  showEmpty: tx('toggle.showEmpty'),
+  refresh: tx('actions.refresh'),
+}));
+
+const cardLabels = computed(() => ({
+  archived: tx('common.archived'),
+  defaultSource: tx('common.defaultSource'),
+  delete: tx('actions.delete'),
+  deleteTitle: tx('title.deleteSession'),
+  details: tx('actions.details'),
+  detailsTitle: tx('title.viewDetails'),
+  messageUnit: tx('common.messageUnit'),
+  resumeCommand: tx('actions.resumeCommand'),
+  resumeTitle: tx('title.resumeCommand'),
+  selectSession: tx('actions.selectSession'),
+  unnamedSession: tx('common.unnamedSession'),
+  viewDetailsToLoad: tx('transcript.viewDetails'),
+  zeroSeconds: tx('common.zeroSeconds'),
+}));
+
+const chatLabels = computed(() => ({
+  archived: tx('common.archived'),
+  assistant: tx('chat.assistant'),
+  close: tx('actions.close'),
+  defaultSource: tx('common.defaultSource'),
+  empty: tx('chat.empty'),
+  loading: tx('chat.loading'),
+  resumeCommand: tx('actions.resumeCommand'),
+  resumeTitle: tx('title.resumeCommand'),
+  sessionId: (id) => tx('chat.sessionId', { id }),
+  user: tx('chat.user'),
+}));
 
 const dialogSession = ref(null);
 const dialogOpen = ref(false);
@@ -189,7 +252,7 @@ const refreshSessions = async () => {
     rawSessionFiles.value = await loadSessions();
   } catch (err) {
     console.warn('Failed to refresh sessions', err);
-    loadError.value = err?.message || '加载会话文件失败。';
+    loadError.value = err?.message || tx('error.loadSessions');
     rawSessionFiles.value = [];
   } finally {
     isLoading.value = false;
@@ -215,7 +278,7 @@ const openSession = async (session) => {
   } catch (err) {
     console.warn('Failed to load session detail', err);
     if (requestId === detailRequestId) {
-      dialogError.value = err?.message || '加载会话详情失败。';
+      dialogError.value = err?.message || tx('error.loadSessionDetail');
     }
   } finally {
     if (requestId === detailRequestId) {
@@ -279,7 +342,7 @@ const showResumeCommand = async (session) => {
   const copied = await copyText(cmd);
   commandDialogCopied.value = copied;
   if (!copied) {
-    commandDialogError.value = '自动复制失败，请手动复制下面的 PowerShell 命令。';
+    commandDialogError.value = tx('command.copyResumeFailed');
   }
 };
 
@@ -287,14 +350,14 @@ const copyNewSession = async (session) => {
   const cmd = buildNewSessionCommand(session);
   const copied = await copyText(cmd);
   if (!copied) {
-    loadError.value = '新建会话命令复制失败，请稍后重试。';
+    loadError.value = tx('command.copyNewFailed');
   }
 };
 
 const copyCommandAgain = async () => {
   const copied = await copyText(commandDialogCommand.value);
   commandDialogCopied.value = copied;
-  commandDialogError.value = copied ? '' : '复制失败，请手动复制。';
+  commandDialogError.value = copied ? '' : tx('command.copyFailed');
 };
 
 const requestBulkDelete = () => {
@@ -317,19 +380,21 @@ const formatCleanupSummary = (cleanup) => {
 
   const parts = [];
   if (cleanup.threadsDeleted) {
-    parts.push(`清理 App 线程索引 ${cleanup.threadsDeleted} 条`);
+    parts.push(tx('cleanup.threadsDeleted', { count: cleanup.threadsDeleted }));
   }
   if (cleanup.sessionIndexRemoved) {
-    parts.push(`清理会话索引 ${cleanup.sessionIndexRemoved} 条`);
+    parts.push(tx('cleanup.sessionIndexRemoved', { count: cleanup.sessionIndexRemoved }));
   }
   if (cleanup.projectRootsRemoved?.length) {
-    parts.push(`移除空项目 ${cleanup.projectRootsRemoved.length} 个`);
+    parts.push(tx('cleanup.projectRootsRemoved', { count: cleanup.projectRootsRemoved.length }));
   }
   if (cleanup.warnings?.length) {
-    parts.push(`警告：${cleanup.warnings.join('；')}`);
+    parts.push(tx('cleanup.warning', { message: cleanup.warnings.join('；') }));
   }
 
-  return parts.length ? `同步清理：${parts.join('，')}。` : '同步清理：无残留 App 索引需要清理。';
+  return parts.length
+    ? `${tx('cleanup.prefix')}${parts.join(tx('cleanup.separator'))}${tx('cleanup.suffix')}`
+    : tx('cleanup.none');
 };
 
 const closeBulkDelete = () => {
@@ -352,19 +417,25 @@ const confirmBulkDelete = async () => {
     const result = await deleteSessions(targets);
     const cleanupSummary = formatCleanupSummary(result.appCleanup);
     if (result.failed.length) {
-      bulkDeleteError.value = `已删除 ${result.deleted} 个，${result.failed.length} 个失败：${result.failed
-        .map((item) => item.message)
-        .join('；')}。${cleanupSummary}`;
+      bulkDeleteError.value = tx('delete.partialError', {
+        deleted: result.deleted,
+        failed: result.failed.length,
+        messages: result.failed.map((item) => item.message).join('；'),
+        cleanup: cleanupSummary,
+      });
       selectedIds.value = new Set(result.failed.map((item) => item.session.id));
     } else {
-      bulkDeleteMessage.value = `已删除 ${result.deleted} 个会话文件。${cleanupSummary}`;
+      bulkDeleteMessage.value = tx('delete.success', {
+        deleted: result.deleted,
+        cleanup: cleanupSummary,
+      });
       clearSelection();
       bulkDeleteOpen.value = false;
     }
     await refreshSessions();
   } catch (err) {
     console.warn('Bulk delete failed', err);
-    bulkDeleteError.value = err?.message || '批量删除失败。';
+    bulkDeleteError.value = err?.message || tx('error.bulkDelete');
   } finally {
     bulkDeleteLoading.value = false;
   }
@@ -377,9 +448,12 @@ const confirmBulkDelete = async () => {
       <v-container fluid class="pt-0 pb-6 px-0">
         <SessionHeader
           v-model:group-by="groupBy"
+          v-model:language="languageModel"
           v-model:show-empty="showEmpty"
           v-model:source-filter="sourceFilter"
           :group-options="groupOptions"
+          :labels="headerLabels"
+          :language-options="LANGUAGE_OPTIONS"
           :source-options="sourceOptions"
           :sessions-count="sessionsList.length"
           @refresh="refreshSessions"
@@ -392,7 +466,7 @@ const confirmBulkDelete = async () => {
             variant="tonal"
             class="mb-4"
           >
-            正在加载本机会话索引，大型会话目录首次加载可能需要一些时间。
+            {{ tx('loading.sessions') }}
           </v-alert>
 
           <v-alert
@@ -421,11 +495,11 @@ const confirmBulkDelete = async () => {
                 :model-value="allVisibleSelected"
                 density="compact"
                 color="primary"
-                aria-label="全选当前列表"
+                :aria-label="tx('title.selectAllVisible')"
                 @update:model-value="toggleAllVisible"
               />
               <div class="text-body-2 font-weight-medium ml-1">
-                已选择 {{ selectedSessions.length }} / {{ sessionsList.length }} 个
+                {{ tx('bulk.selected', { selected: selectedSessions.length, total: sessionsList.length }) }}
               </div>
             </div>
             <v-spacer />
@@ -435,7 +509,7 @@ const confirmBulkDelete = async () => {
               :disabled="allVisibleSelected"
               @click="selectAllVisible"
             >
-              全选当前列表
+              {{ tx('actions.selectAllVisible') }}
             </v-btn>
             <v-btn
               variant="text"
@@ -443,7 +517,7 @@ const confirmBulkDelete = async () => {
               :disabled="!selectedSessions.length"
               @click="clearSelection"
             >
-              清空选择
+              {{ tx('actions.clearSelection') }}
             </v-btn>
             <v-btn
               color="error"
@@ -453,7 +527,7 @@ const confirmBulkDelete = async () => {
               @click="requestBulkDelete"
             >
               <v-icon size="16" class="mr-1" icon="mdi-delete-sweep-outline" />
-              删除所选
+              {{ tx('actions.deleteSelected') }}
             </v-btn>
           </div>
 
@@ -464,10 +538,10 @@ const confirmBulkDelete = async () => {
                 {{ group.label }}
               </div>
               <v-chip size="x-small" variant="tonal" color="primary">
-                {{ group.items.length }} 个会话
+                {{ tx('group.sessionCount', { count: group.items.length }) }}
               </v-chip>
               <div class="text-caption text-medium-emphasis ml-3 d-none d-md-block">
-                最近更新 {{ formatDate(group.latestAt) }}
+                {{ tx('group.latestAt', { date: localizedFormatDate(group.latestAt) }) }}
               </div>
               <v-spacer />
               <v-btn
@@ -475,32 +549,32 @@ const confirmBulkDelete = async () => {
                 color="primary"
                 variant="text"
                 size="small"
-                title="选择本项目所有会话"
+                :title="tx('title.selectProject')"
                 @click="selectSessions(group.items)"
               >
-                选择本项目
+                {{ tx('actions.selectProject') }}
               </v-btn>
               <v-btn
                 v-if="groupBy === 'project'"
                 color="error"
                 variant="text"
                 size="small"
-                title="删除本项目所有会话"
+                :title="tx('title.deleteProject')"
                 @click="requestDeleteSessions(group.items)"
               >
                 <v-icon size="16" class="mr-1" icon="mdi-delete-outline"></v-icon>
-                删除本项目
+                {{ tx('actions.deleteProject') }}
               </v-btn>
               <v-btn
                 v-if="groupBy === 'project'"
                 color="primary"
                 variant="text"
                 size="small"
-                title="复制到剪贴板"
+                :title="tx('title.newSessionCommand')"
                 @click="copyNewSession(group.items[0])"
               >
                 <v-icon size="16" class="mr-1" icon="mdi-plus-circle-outline"></v-icon>
-                新建会话命令
+                {{ tx('actions.newSessionCommand') }}
               </v-btn>
             </div>
             <div class="session-list">
@@ -508,7 +582,8 @@ const confirmBulkDelete = async () => {
                 v-for="session in group.items"
                 :key="session.id"
                 :session="session"
-                :format-date="formatDate"
+                :format-date="localizedFormatDate"
+                :labels="cardLabels"
                 :selected="isSessionSelected(session)"
                 @show-resume="showResumeCommand"
                 @delete-session="requestDeleteSessions([$event])"
@@ -524,7 +599,7 @@ const confirmBulkDelete = async () => {
             variant="tonal"
             class="mt-4"
           >
-            未找到会话文件。
+            {{ tx('empty.noSessions') }}
           </v-alert>
         </div>
       </v-container>
@@ -532,7 +607,8 @@ const confirmBulkDelete = async () => {
       <ChatDialog
         v-model="dialogOpen"
         :session="dialogSession"
-        :format-date="formatDate"
+        :format-date="localizedFormatDate"
+        :labels="chatLabels"
         :loading="dialogLoading"
         :error="dialogError"
         @show-resume="showResumeCommand"
@@ -542,7 +618,7 @@ const confirmBulkDelete = async () => {
       <v-dialog v-model="commandDialogOpen" max-width="760">
         <v-card>
           <v-card-title class="text-h6 font-weight-bold">
-            PowerShell 恢复命令
+            {{ tx('command.title') }}
           </v-card-title>
           <v-card-text>
             <v-alert
@@ -551,7 +627,7 @@ const confirmBulkDelete = async () => {
               variant="tonal"
               class="mb-3"
             >
-              已复制到剪贴板，粘贴到 PowerShell 执行即可。
+              {{ tx('command.copied') }}
             </v-alert>
             <v-alert
               v-if="commandDialogError"
@@ -566,10 +642,10 @@ const confirmBulkDelete = async () => {
           <v-card-actions>
             <v-spacer />
             <v-btn variant="text" @click="commandDialogOpen = false">
-              关闭
+              {{ tx('actions.close') }}
             </v-btn>
             <v-btn color="primary" variant="flat" @click="copyCommandAgain">
-              复制命令
+              {{ tx('actions.copyCommand') }}
             </v-btn>
           </v-card-actions>
         </v-card>
@@ -578,7 +654,7 @@ const confirmBulkDelete = async () => {
       <v-dialog v-model="bulkDeleteOpen" max-width="520">
         <v-card>
           <v-card-title class="text-h6 font-weight-bold">
-            {{ selectedSessions.length === 1 ? '确认删除会话' : '确认批量删除' }}
+            {{ selectedSessions.length === 1 ? tx('delete.singleTitle') : tx('delete.bulkTitle') }}
           </v-card-title>
           <v-card-text>
             <v-alert
@@ -590,10 +666,10 @@ const confirmBulkDelete = async () => {
               {{ bulkDeleteError }}
             </v-alert>
             <p class="mb-2">
-              将直接删除本地 {{ selectedSessions.length }} 个 Codex 会话 JSONL 文件。
+              {{ tx('bulk.deleteText', { count: selectedSessions.length }) }}
             </p>
             <p class="text-body-2 text-medium-emphasis">
-              删除范围仅限当前已索引的会话文件；操作完成后列表会自动刷新。
+              {{ tx('bulk.deleteRange') }}
             </p>
           </v-card-text>
           <v-card-actions>
@@ -603,7 +679,7 @@ const confirmBulkDelete = async () => {
               :disabled="bulkDeleteLoading"
               @click="closeBulkDelete"
             >
-              取消
+              {{ tx('actions.cancel') }}
             </v-btn>
             <v-btn
               color="error"
@@ -612,7 +688,7 @@ const confirmBulkDelete = async () => {
               :disabled="!selectedSessions.length"
               @click="confirmBulkDelete"
             >
-              确认删除
+              {{ tx('actions.confirmDelete') }}
             </v-btn>
           </v-card-actions>
         </v-card>

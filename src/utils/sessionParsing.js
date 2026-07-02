@@ -25,11 +25,11 @@ const getFirstUserRequest = (entries) => {
   return NO_REQUEST_TEXT;
 };
 
-export const formatDate = (value) => {
+export const formatDate = (value, locale = 'zh-CN') => {
   if (!value) return 'N/A';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat('zh-CN', {
+  return new Intl.DateTimeFormat(locale, {
     day: '2-digit',
     month: 'short',
     year: 'numeric',

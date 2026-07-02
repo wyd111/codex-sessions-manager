@@ -1,6 +1,6 @@
 export const ALL_SOURCES_VALUE = '__all__';
 
-export const sourceOptionsFromSessions = (sessions) => {
+export const sourceOptionsFromSessions = (sessions, allSourcesTitle = '全部来源') => {
   const byId = new Map();
   for (const session of sessions || []) {
     const id = session.sourceId || 'default';
@@ -11,7 +11,7 @@ export const sourceOptionsFromSessions = (sessions) => {
   }
 
   return [
-    { title: '全部来源', value: ALL_SOURCES_VALUE },
+    { title: allSourcesTitle, value: ALL_SOURCES_VALUE },
     ...Array.from(byId.values()).sort((a, b) => a.title.localeCompare(b.title)),
   ];
 };

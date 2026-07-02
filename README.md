@@ -35,10 +35,37 @@ This application solves that problem by providing a clean, convenient UI for bro
 The app runs entirely on your local machine and never sends any data anywhere.
 
 ## Installation instructions 
-This section covers deploying on a Windows machine that uses WSL2 for Codex, with Node running inside a Docker container and sessions stored in WSL.
+You can run the manager directly on Windows, or use the original WSL/Docker workflow when your Codex sessions live inside WSL.
 
 
-### Prerequisites
+### Windows local deployment
+Use this mode when Codex and its session files are on the Windows host, for example under `C:\Users\<WindowsUser>\.codex`.
+
+1) **Install dependencies:**
+   ```powershell
+   pnpm install
+   ```
+
+2) **Configure the Codex homes to scan:**
+   ```powershell
+   $env:CODEX_SESSION_SOURCES='[{"id":"default-apikey","name":"Default API Key","codexHome":"C:/Users/<WindowsUser>/.codex"}]'
+   ```
+   Add more entries when API-key and ChatGPT-login sessions are stored in separate `CODEX_HOME` directories:
+   ```powershell
+   $env:CODEX_SESSION_SOURCES='[{"id":"default-apikey","name":"Default API Key","codexHome":"C:/Users/<WindowsUser>/.codex"},{"id":"chatgpt","name":"ChatGPT Login","codexHome":"C:/Users/<WindowsUser>/.codex-chatgpt"}]'
+   ```
+
+3) **Start the local web UI:**
+   ```powershell
+   pnpm run dev -- --host 127.0.0.1 --port 5172
+   ```
+
+4) **Open the app:**
+   Visit `http://127.0.0.1:5172/` in your browser.
+
+For a persistent setup, copy `.env.example` to `.env` and put the same `CODEX_SESSION_SOURCES`, `VITE_HOST`, and `VITE_PORT` values there.
+
+### WSL/Docker prerequisites
 - Windows 10/11 with WSL2 installed and a Linux distribution set up.
 - Docker Desktop for Windows with WSL backend enabled.
 - pnpm installed in the Docker container (or use `corepack enable`).

@@ -13,9 +13,9 @@ describe('App UI action wiring', () => {
   });
 
   it('shows a PowerShell command dialog for resume commands', () => {
-    expect(appVue).toContain('PowerShell 恢复命令');
+    expect(appVue).toContain("tx('command.title')");
     expect(appVue).toContain('commandDialogCommand');
-    expect(appVue).toContain('复制命令');
+    expect(appVue).toContain("tx('actions.copyCommand')");
   });
 
   it('falls back when navigator clipboard write is denied', () => {
@@ -24,6 +24,12 @@ describe('App UI action wiring', () => {
   });
 
   it('uses a single-session title for one selected deletion', () => {
-    expect(appVue).toContain("selectedSessions.length === 1 ? '确认删除会话' : '确认批量删除'");
+    expect(appVue).toContain("selectedSessions.length === 1 ? tx('delete.singleTitle') : tx('delete.bulkTitle')");
+  });
+
+  it('passes language switching props into the header', () => {
+    expect(appVue).toContain('v-model:language="languageModel"');
+    expect(appVue).toContain(':language-options="LANGUAGE_OPTIONS"');
+    expect(appVue).toContain(':labels="headerLabels"');
   });
 });

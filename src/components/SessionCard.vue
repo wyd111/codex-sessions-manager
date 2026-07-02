@@ -10,6 +10,10 @@ const props = defineProps({
     type: Function,
     required: true,
   },
+  labels: {
+    type: Object,
+    required: true,
+  },
   selected: {
     type: Boolean,
     default: false,
@@ -24,7 +28,7 @@ const title = computed(
     props.session.threadName ||
     props.session.firstRequest ||
     props.session.sessionId ||
-    '未命名会话',
+    props.labels.unnamedSession,
 );
 
 const dateText = computed(() =>
@@ -46,7 +50,7 @@ const handleToggleSelect = (value) => emit('toggle-select', props.session, value
         :model-value="selected"
         density="compact"
         color="primary"
-        :aria-label="`选择 ${title}`"
+        :aria-label="`${labels.selectSession} ${title}`"
         @update:model-value="handleToggleSelect"
       />
     </div>
@@ -66,13 +70,13 @@ const handleToggleSelect = (value) => emit('toggle-select', props.session, value
           color="warning"
           variant="tonal"
         >
-          归档
+          {{ labels.archived }}
         </v-chip>
       </div>
       <div class="session-meta text-caption text-medium-emphasis">
         <span>{{ dateText }}</span>
         <span class="dot">•</span>
-        <span>{{ session.sourceName || '默认来源' }}</span>
+        <span>{{ session.sourceName || labels.defaultSource }}</span>
         <span v-if="session.cwd" class="dot">•</span>
         <span v-if="session.cwd" class="path">{{ session.cwd }}</span>
       </div>
@@ -82,12 +86,12 @@ const handleToggleSelect = (value) => emit('toggle-select', props.session, value
       v-if="session.hasTranscript"
       class="row-extra text-caption text-medium-emphasis d-none d-lg-flex"
     >
-      <span>{{ session.entryCount || 0 }} 条消息</span>
+      <span>{{ session.entryCount || 0 }} {{ labels.messageUnit }}</span>
       <span class="dot">•</span>
-      <span>{{ session.activeDuration || '0秒' }}</span>
+      <span>{{ session.activeDuration || labels.zeroSeconds }}</span>
     </div>
     <div v-else class="row-extra text-caption text-medium-emphasis d-none d-lg-flex">
-      点详情查看消息
+      {{ labels.viewDetailsToLoad }}
     </div>
 
     <div class="row-actions">
@@ -95,30 +99,30 @@ const handleToggleSelect = (value) => emit('toggle-select', props.session, value
         color="primary"
         variant="text"
         size="small"
-        title="显示 PowerShell 恢复命令"
+        :title="labels.resumeTitle"
         @click.stop="handleShowResume"
       >
         <v-icon size="16" class="mr-1" icon="mdi-play-circle-outline" />
-        恢复命令
+        {{ labels.resumeCommand }}
       </v-btn>
       <v-btn
         color="error"
         variant="text"
         size="small"
-        title="删除该会话"
+        :title="labels.deleteTitle"
         @click.stop="handleDelete"
       >
         <v-icon size="16" class="mr-1" icon="mdi-delete-outline" />
-        删除
+        {{ labels.delete }}
       </v-btn>
       <v-btn
         color="primary"
         variant="flat"
         size="small"
-        title="查看会话详情"
+        :title="labels.detailsTitle"
         @click.stop="handleOpen"
       >
-        详情
+        {{ labels.details }}
       </v-btn>
     </div>
   </div>

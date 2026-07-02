@@ -12,6 +12,10 @@ const props = defineProps({
     type: Function,
     required: true,
   },
+  labels: {
+    type: Object,
+    required: true,
+  },
   loading: {
     type: Boolean,
     default: false,
@@ -49,11 +53,11 @@ const copyResume = () => {
             {{ session.displayName || session.firstRequest || session.projectName }}
           </div>
           <div class="text-caption text-medium-emphasis">
-            会话 ID：{{ session.sessionId }}
+            {{ labels.sessionId(session.sessionId) }}
           </div>
           <div class="d-flex align-center ga-2 mt-1">
             <v-chip size="x-small" color="primary" variant="tonal">
-              {{ session.sourceName || '默认来源' }}
+              {{ session.sourceName || labels.defaultSource }}
             </v-chip>
             <v-chip
               v-if="session.archive"
@@ -61,7 +65,7 @@ const copyResume = () => {
               color="warning"
               variant="tonal"
             >
-              归档
+              {{ labels.archived }}
             </v-chip>
           </div>
         </div>
@@ -71,11 +75,11 @@ const copyResume = () => {
           variant="flat"
           size="small"
           class="mr-2"
-          title="显示 PowerShell 恢复命令"
+          :title="labels.resumeTitle"
           @click="copyResume"
         >
           <v-icon size="16" class="mr-1" icon="mdi-play-circle-outline"></v-icon>
-          恢复命令
+          {{ labels.resumeCommand }}
         </v-btn>
         <v-btn icon="mdi-close" variant="text" @click="close" />
       </v-card-title>
@@ -87,12 +91,12 @@ const copyResume = () => {
 
         <div v-if="loading" class="detail-loading">
           <v-progress-circular indeterminate color="primary" size="28" class="mr-3" />
-          <span class="text-body-2 text-medium-emphasis">正在加载会话详情……</span>
+          <span class="text-body-2 text-medium-emphasis">{{ labels.loading }}</span>
         </div>
 
         <div v-else-if="!session.messages?.length && !error" class="empty-detail">
           <v-icon icon="mdi-message-off-outline" size="24" class="mb-2" />
-          <div class="text-body-2 text-medium-emphasis">暂无可显示的消息。</div>
+          <div class="text-body-2 text-medium-emphasis">{{ labels.empty }}</div>
         </div>
 
         <div v-else class="d-flex flex-column gap-3">
@@ -111,7 +115,7 @@ const copyResume = () => {
                 :icon="msg.role === 'assistant' ? 'mdi-robot-outline' : 'mdi-account-circle'"
               />
               <span class="mr-2 text-uppercase">
-                {{ msg.role === 'assistant' ? '助手' : '用户' }}
+                {{ msg.role === 'assistant' ? labels.assistant : labels.user }}
               </span>
               <span>{{ formatDate(msg.timestamp) }}</span>
             </div>
@@ -124,7 +128,7 @@ const copyResume = () => {
 
       <v-card-actions>
         <v-spacer />
-        <v-btn color="primary" variant="flat" @click="close">关闭</v-btn>
+        <v-btn color="primary" variant="flat" @click="close">{{ labels.close }}</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
