@@ -9,6 +9,8 @@
 
 # Codex Sessions Manager
 
+Language: English | [简体中文](README.zh-CN.md)
+
 Codex Sessions Manager is a local running SPA interface that simplifies working with session archives created by the Codex coding agent.  
 By default, Codex allows you to resume a previous session only if you manually saved its session ID.  
 If the ID was lost, you have to browse through the `.codex/sessions` folder and inspect files one by one to find the right session.
